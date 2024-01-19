@@ -4,8 +4,9 @@
 const express = require('express');
 const morgan = require('morgan');
 
-//models
-let User = require('./models').User;
+// load routes
+const routes = require('./routes');
+const { sequelize } = require('./models');
 
 // variable to enable global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
@@ -16,67 +17,24 @@ const app = express();
 // setup morgan which gives us http request logging
 app.use(morgan('dev'));
 
-function asyncHandler(cb){
-  return async(req, res, next) => {
-    try{
-      await cb(req, res, next)
-    } catch(error){
-      next(error)
-    }
-  }
-}
-
-const db = require('./models');
-
-//connect to db
-(async () => {
-  try {
-    await db.sequelize.authenticate();
-    console.log('Connection to the database successful!');
-    //sync model with db
-    db.sequelize.sync().then(() => {
-      // ??
-      //server.listen(port);
-    });
-  } catch (error) {
-    console.error('Error connecting to the database: ', error);
-  }
-})();
-
-
-// setup a friendly greeting for the root route
+// friendly 'test welcome' message on app load (note: this is just a backend)
 app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to the REST API project!',
   });
 });
 
-app.get('/api/users', asyncHandler( async(req, res) => {
-  let users = await User.findAll();
-  res.json({
-    message: users,
-  });
-}));
+// this is express middleware, when a request comes in, it will be sent through this function before it hits one of our route handlers
+// this middleware tells express we are expecting requests to come in as json
+app.use(express.json());
 
-app.post('/api/users', asyncHandler( async(req, res) => {
-  let user;
-  try {
-    // create a new book object in the database
-    user = await User.create(req.body);
-  } catch (error) {
-    if (error.name === "SequelizeValidationError") {
-      //??
-      user = await User.build(req.body);
-    } else {
-      throw error;
-    }
-  }
-}));
+// all our backend routes are setup as part of the API and stem from that root
+app.use('/api', routes);
 
 // send 404 if no other route matched
 app.use((req, res) => {
   res.status(404).json({
-    message: 'Route Not Found',
+    message: 'Page Not Found',
   });
 });
 
@@ -85,7 +43,6 @@ app.use((err, req, res, next) => {
   if (enableGlobalErrorLogging) {
     console.error(`Global error handler: ${JSON.stringify(err.stack)}`);
   }
-
   res.status(err.status || 500).json({
     message: err.message,
     error: {},
@@ -95,7 +52,20 @@ app.use((err, req, res, next) => {
 // set our port
 app.set('port', process.env.PORT || 5000);
 
-// start listening on our port
-const server = app.listen(app.get('port'), () => {
-  console.log(`Express server is listening on port ${server.address().port}`);
+// test the database connection
+(async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Connection has been established successfully');
+  } catch (error) {
+    console.error('Unable to connect to the database: ', error);
+  }
+})();
+
+// sequelize model synchronization, then start app
+sequelize.sync()
+  .then(() => {
+    const server = app.listen(app.get('port'), () => {
+      console.log(`Express server is listening on port ${server.address().port}`);
+    });
 });

@@ -1,42 +1,82 @@
 "use strict";
+const { Model, DataTypes } = require('sequelize');
+const bcrypt = require('bcryptjs');
 
-/**
- * Define a database model to be exported, with tables names, data types, and validation
- *
- * @param {promise-based ORM (object relational mapping) tool} sequelize
- * @param {Define type of data for sequelize} DataTypes
- * @returns table named Book to store data
- */
-
-module.exports = (sequelize, DataTypes) => {
-  const User = sequelize.define(
-    "User",
-    {
-      fisrtName: {
-        type: DataTypes.STRING,
-        validate: {
-          notEmpty: {
-            msg: "Please provide a value for firstName",
-          },
+module.exports = (sequelize) => {
+    class User extends Model {}
+    User.init({
+        firstName: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            validate: {
+                notNull: {
+                    msg: 'A first name is required'
+                },
+                notEmpty: {
+                    msg: 'Please provide a first name'
+                },
+            },
         },
-      },
-      lastName: {
-        type: DataTypes.STRING,
-        validate: {
-          notEmpty: {
-            msg: "Please provide a value for lastName",
-          },
+        lastName: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            validate: {
+                notNull: {
+                    msg: 'A last name is required'
+                },
+                notEmpty: {
+                    msg: 'Please provide a last name'
+                },
+            },
         },
-      },
-      emailAddress: DataTypes.STRING,
-      password: DataTypes.STRING,
-    },
-    {}
-  );
-
-  User.associate = (models) => {
-    User.hasMany(models.Course);
-  }
-
-  return User;
+        emailAddress: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            // will ensure that each entry is unique
+            unique: {
+                msg: 'The email you entered already exists'
+            },
+            validate: {
+                notNull: {
+                    msg: 'An email is required'
+                },
+                isEmail: {
+                    msg: 'Please provide a valid email address'
+                },
+            },
+        },
+        password: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            // Defining a custom setter for the model with the set() method
+            // set() receives the value, val, to set the password field
+            set(val){
+                // hash the password with bcrypt.hashSync()
+                const hashedPassword = bcrypt.hashSync(val, 10);
+                // setDataValue() is a Sequelize method used inside setters to update the underlying data value
+                this.setDataValue('password', hashedPassword);
+            },
+            validate: {
+                notNull: {
+                    msg: 'A password is required'
+                },
+                notEmpty: {
+                    msg: 'Please provide a password'
+                },
+            },
+        },
+    }, { sequelize });
+    
+    User.associate = (models) => {
+        // Tells Sequelize that a user can be associated with one or more courses
+        User.hasMany(models.Course, {
+            foreignKey: {
+                fieldName: 'userId',
+                allowNull: false,
+            },
+        });
+    };
+    
+    
+    return User;
 };

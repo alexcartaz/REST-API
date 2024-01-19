@@ -1,43 +1,50 @@
 "use strict";
+const { Model, DataTypes } = require('sequelize');
 
-/**
- * Define a database model to be exported, with tables names, data types, and validation
- *
- * @param {promise-based ORM (object relational mapping) tool} sequelize
- * @param {Define type of data for sequelize} DataTypes
- * @returns table named Book to store data
- */
-
-module.exports = (sequelize, DataTypes) => {
-  const Course = sequelize.define(
-    "Course",
-    {
-      title: {
-        type: DataTypes.STRING,
-        validate: {
-          notEmpty: {
-            msg: "Please provide a value for title",
-          },
+module.exports = (sequelize) => {
+    class Course extends Model {}
+    Course.init({
+        title: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            validate: {
+                notNull: {
+                    msg: 'A title is required'
+                },
+                notEmpty: {
+                    msg: 'Please provide a title'
+                },
+            },
         },
-      },
-      description: {
-        type: DataTypes.TEXT,
-        validate: {
-          notEmpty: {
-            msg: "Please provide a value for description",
-          },
+        description: {
+            type: DataTypes.TEXT,
+            allowNull: false,
+            validate: {
+                notNull: {
+                    msg: 'A description is required'
+                },
+                notEmpty: {
+                    msg: 'Please provide a description'
+                },
+            },
         },
-      },
-      estimatedTime: DataTypes.STRING,
-      materialsNeeded: DataTypes.STRING,
-      userId: DataTypes.INTEGER
-    },
-    {}
-  ); 
+        estimatedTime: {
+            type: DataTypes.STRING,
+            
+        },
+        materialsNeeded: {
+            type: DataTypes.STRING,
+            
+        },
+    }, { sequelize });
 
-  Course.associate = (models) => {
-    Course.belongsTo(models.User);
-  }
+    Course.associate = (models) => {
+        Course.belongsTo(models.User, {
+            foreignKey: {
+                fieldName: 'userId',
+            },
+        });
+    };
 
   return Course;
 };
