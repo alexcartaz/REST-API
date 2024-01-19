@@ -65,7 +65,9 @@ router.get('/courses', asyncHandler(async (req, res) => {
 
 // GET individual course
 router.get('/courses/:id', asyncHandler(async (req, res) => {
-    const course = await Course.findByPk(req.params.id);
+    const course = await Course.findByPk(req.params.id, {
+        attributes: ['id', 'title', 'description', 'estimatedTime', 'materialsNeeded', 'userId']
+    });
     if (course) {
         res.status(200).json(course);
     } else {
